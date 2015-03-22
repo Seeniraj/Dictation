@@ -45,11 +45,13 @@
                 <h1>Simple Dictation</h1>
             </div>
             <div data-role="content" id="mainManageWords">
-                <div id="words">
-                    <ul id="wordList" data-role="listview"><li id="wordListHeader">Words</li></ul>
+                <div id="words" class="ui-content">
+                    <ul id="wordList" data-role="listview">
+                        <li id="wordListHeader">Words</li>
+                    </ul>
                 </div>
-                <p><a href="#pageAddWord">Add words</a></p>
-                <p><a href="#pageTestWords">Dictation</a></p>
+                <div><a data-role="button" href="#pageAddWord">Add words</a>
+                    <a data-role="button" href="#pageTestWords">Dictation</a></div>
             </div>
             <div data-role="footer"></div>
         </div>
@@ -58,8 +60,17 @@
                 <h1>Simple Dictation - Add Words</h1>
             </div>
             <div data-role="content" id="mainAddWord">
-                <p><label for="NewWord">Word</label><input id="NewWord" type="text"><input id="OriginalWord" type="hidden"></p>
-                <p><a href="#Speak" data-role="button" data-icon="microphone">Speak the word</a></p>
+                <p>
+                    <label for="NewWord">Word</label>
+                    <input id="NewWord" type="text">
+                    <input id="OriginalWord" type="hidden">
+                </p>
+                <p>
+                    <div class="ui-grid-a">
+                        <div class="ui-block-a"><a href="#" id="record" data-role="button" data-icon="microphone">Speak the word</a></div>
+                        <div class="ui-block-b"><a href="#" id="play" data-role="button" data-icon="play-circle">Play</a></div>
+                    </div>
+                </p>
                 <div class="ui-grid-b">
                     <div class="ui-block-a"><input type="button" id="saveWord" data-role="button" data-icon="check" value="Save the word"></div>
                     <div class="ui-block-b"><input type="button" id="cancelAddWord" data-role="button" data-icon="delete" value="Cancel"></div>

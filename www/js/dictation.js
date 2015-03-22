@@ -54,6 +54,10 @@ var dictation = {
         
         $(document).on('click', '#submitTestWords', dictation.validateWords);
         $(document).on('click', '#cancelTestWords', dictation.gotoHome);
+        $(document).on('click', '.playCurrentWord', dictation.playCurrentWord);
+        
+        $(document).on('click', '#record', dictation.record);
+        $(document).on('click', '#play', dictation.play);
     },
     gotoManageWords: function()
     {
@@ -68,6 +72,7 @@ var dictation = {
     // The scope of 'this' is the event. In order to call the 'receivedEvent'
     // function, we must explicitly call 'app.receivedEvent(...);'
     onDeviceReady: function () {
+        window.alert = navigator.notification.alert;
         dictation.receivedEvent('deviceready');
     },
     // Update DOM on a Received Event
@@ -93,7 +98,7 @@ var dictation = {
         for (var i = 0; i < NoOfWords; ++i)
         {
             var word = dictation.words.list[i].word;
-           $("#wordList").append("<li><a class='editWord' href='#' id='word" + i + "' data-word='" + word + "'>" + word + "<a></li>");
+           $("#wordList").append("<li><a class='editWord' href='#' id='word" + i + "' data-word='" + word + "'>" + word + "</a></li>");
         }
         $("#wordList").listview('refresh');
     },
@@ -190,7 +195,7 @@ var dictation = {
         for (var i = 0; i < NoOfWords; ++i)
         {
             var word = dictation.words.list[i].word;
-           $("#testWordList").append("<li><div id='testWord" + i + "'><input type='text' id='inputTestWord" + i + "' data-word='" + word + "'></div></li>");
+           $("#testWordList").append("<li><div id='testWord" + i + "'><input type='text' id='inputTestWord" + i + "' data-word='" + word + "'><span class='ui-btn-icon-notext ui-icon-play-circle playCurrentWord' data-word='" + word + "'></span></div></li>");
         }
         $("#testWordList").listview('refresh');
     },
@@ -216,48 +221,188 @@ var dictation = {
             alert("Excellent work!");
         }
     },
-    startRecording: function()
+    recordingInProgress:false,
+    recordedFileName:"",
+    recorded:false,
+//    // capture callback
+//    captureSuccess: function(mediaFiles) 
+//    {
+//        var i, path, len;
+//        for (i = 0, len = mediaFiles.length; i < len; i += 1) {
+//            path = mediaFiles[i].fullPath;
+//            // do something interesting with the file
+//        }
+//    },
+//    // capture error callback
+//    captureError: function(error) 
+//    {
+//        navigator.notification.alert('Error code: ' + error.code, null, 'Capture Error');
+//    },
+    processMediaStatus: function(mediaStatus)
     {
+/*
+ *     Media.MEDIA_NONE = 0;
+    Media.MEDIA_STARTING = 1;
+    Media.MEDIA_RUNNING = 2;
+    Media.MEDIA_PAUSED = 3;
+    Media.MEDIA_STOPPED = 4;
+
+ */
+        switch(mediaStatus)
+        {
+            case 0:
+                console.log("Media.MEDIA_NONE");
+                break;
+            case 1:
+                console.log("Media.MEDIA_STARTING");
+                break;
+            case 2:
+                console.log("Media.MEDIA_RUNNING");
+                break;
+            case 3:
+                console.log("Media.MEDIA_PASSED");
+                break;
+            case 4:
+                console.log("Media.MEDIA_STOPPED");
+                break;
+            default:
+                console.log("Unknown status " + mediaStatus);
+        }
+    },
+    record: function()
+    {
+        var word = $("#NewWord").val();
+        if (typeof(word) === 'undefined' || word === null || word.trim() === "")
+        {
+            alert("Please enter a word");
+            return;
+        }
+        if (dictation.recordingInProgress)
+        {
+            dictation.stopRecording();
+            return;
+        }
         var d1=new Date();
-        var fileName = "Word" + d1.getFullYear() + d1.getMonth() + d1.getDay() + d1.getHour() + d1.getMinutes() + d1.getSeconds() + d1.getMilliSeconds() + ".mp3";
-        dictation.media = new Media(fileName,
+        dictation.recordedFileName = word.trim().toLowerCase() + ".mp3"; //testAudio.mp3"; // "Word" + d1.getFullYear() + d1.getMonth() + d1.getDay() + d1.getHours() + d1.getMinutes() + d1.getSeconds() + d1.getMilliseconds() + ".mp3";
+        console.log("initializing recording on " + dictation.recordedFileName);
+        // start audio capture
+        //navigator.device.capture.captureAudio(captureSuccess, captureError, {limit:1, duration:10});
+        if(typeof(dictation.media) !== 'undefined' && dictation.media !== null)
+        {
+            dictation.media.release();
+        }
+        dictation.media = new Media(dictation.recordedFileName,
             // success callback
             function() {
-                console.log("recordAudio():Audio Success");
+                console.log("record():Audio Success");
             },
             // error callback
             function(err) {
-                console.log("recordAudio():Audio Error: "+ err.code);
-            }
+                console.log("record():Audio Error: "+ err.code + " " + JSON.stringify(err));
+            },
+            dictation.processMediaStatus
         );
+        dictation.recordingInProgress = true;
         // Record audio
         dictation.media.startRecord();
+        $("#record").text("Stop recording");
+        $("#record").jqmData("icon", "stop");
         // Stop recording after 10 seconds
         setTimeout(function() {
             dictation.media.stopRecord();
+            $("#record").text("Speak the word");
+            $("#record").jqmData("icon", "microphone");
+            dictation.media.release();
+            console.log("Stopped recording");
+            dictation.recordingInProgress = false;
+            dictation.recorded = true;
             }, 10000);
     },
     stopRecording: function stopRecording() {
+        dictation.recordingInProgress = false;
         if (dictation.media)
         {
             dictation.media.stopRecord(); // the file should be moved to "/sdcard/"+mediaRecFile
+            $("#record").text("Speak the word");
+            $("#record").jqmData("icon", "microphone");
+            dictation.media.release();
+            console.log("Stopped recording");
+            dictation.recordingInProgress = false;
+            dictation.recorded = true;
         }
-        window.requestFileSystem(LocalFileSystem.PERSISTENT, 0, dictation.gotFS, fail);
+        else
+        {
+            console.log("No audio being recorded");
+        }
+        //window.requestFileSystem(LocalFileSystem.PERSISTENT, 0, dictation.gotFS, fail);
     },
-    gotFS: function (fileSystem) {
-        fileSystem.root.getFile("myRecording100.wav", {create: true, exclusive: false}, dictation.gotFileEntry, fail);
+    play:function()
+    {
+        var word = $("#NewWord").val();
+        if (typeof(word) === 'undefined' || word === null || word.trim() === "")
+        {
+            alert("Please enter a word");
+            return;
+        }
+        dictation.recordedFileName = word.trim().toLowerCase() + ".mp3";
+        dictation.playWord(dictation.recordedFileName);
     },
-    gotFileEntry: function (fileEntry) {
-        //alert('File URI: ' + fileEntry.toURI());
-        var options = new FileUploadOptions();
-        var ft = new FileTransfer();
-        var localPath = fileEntry.fullPath;
-        var fileURI = fileEntry.toURL();
-        options.fileKey = "audiofile";
-        options.mimeType = "audio/wav";
-        options.fileName = fileURI.substr(fileURI.lastIndexOf('/') + 1);
-
+    playWord: function(fileName)
+    {
+        //dictation.recordedFileName = "Word" + d1.getFullYear() + d1.getMonth() + d1.getDay() + d1.getHours() + d1.getMinutes() + d1.getSeconds() + d1.getMilliseconds() + ".mp3";
+        if(typeof(dictation.media) !== 'undefined' && dictation.media !== null)
+        {
+            dictation.media.stop();
+            dictation.media.release();
+        }
+        dictation.media = new Media(fileName,
+            // success callback
+            function() {
+                console.log("play():Audio Success");
+                dictation.recordingInProgress = true;
+            },
+            // error callback
+            function(err) {
+                console.log("play():Audio Error: "+ err.code);
+            },
+            dictation.processMediaStatus
+        );
+        if (typeof(dictation.media) !== 'undefined')
+        {
+            console.log("Playing audio");
+            dictation.media.play();
+            //dictation.media.release();
+        }
+        else
+        {
+            console.log("No audio to playback");
+        }    
+    },
+    playCurrentWord: function(event)
+    {
+        var target = $(event.target);
+        var word = target.jqmData("word");
+        if (typeof(word) === 'undefined' || word === null || word.trim() === "")
+        {
+            return;
+        }
+        var fileName = word.trim().toLowerCase() + ".mp3";
+        dictation.playWord(fileName);
     }
+//    ,
+//    gotFS: function (fileSystem) {
+//        fileSystem.root.getFile(dictation.recordedFileName, {create: true, exclusive: false}, dictation.gotFileEntry, fail);
+//    },
+//    gotFileEntry: function (fileEntry) {
+//        //alert('File URI: ' + fileEntry.toURI());
+//        var options = new FileUploadOptions();
+//        var ft = new FileTransfer();
+//        var localPath = fileEntry.fullPath;
+//        var fileURI = fileEntry.toURL();
+//        options.fileKey = "audiofile";
+//        options.mimeType = "audio/wav";
+//        options.fileName = fileURI.substr(fileURI.lastIndexOf('/') + 1);
+//    }
 };
 
 dictation.initialize();
