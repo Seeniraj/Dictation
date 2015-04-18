@@ -16,6 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+var APPNAME = "SimpleDictation";
+
 var dictation = {
     // Application Constructor
     initialize: function () {
@@ -128,8 +130,46 @@ var dictation = {
             themeInStorage = "c";
         }
         dictation.changeTheme(themeInStorage);
+        dictation.ensureFolder(APPNAME);
 
         dictation.receivedEvent('deviceready');
+    },
+    ensureFolder: function(folderName, successCallbackFunc, failureCallbackFunc)
+    {
+        //LocalFileSystem.PERSISTENT
+        if (typeof (LocalFileSystem) === 'undefined')
+        {
+            LocalFileSystem = window;
+        }
+        window.requestFileSystem(LocalFileSystem.PERSISTENT, 0, 
+            function(fileSystem) { 
+                fileSystem.root.getDirectory(folderName, {create: true}, 
+                    function(dirEntry) {
+                        console.log(folderName + " directory created ");
+                        if (typeof (successCallbackFunc) === 'function')
+                        {
+                            successCallbackFunc();
+                        }
+                    },
+                    function(error)
+                    {
+                        console.log("Error creating folder " + folderName + ". " + JSON.stringify(error));
+                        if (typeof (failureCallbackFunc) === 'function')
+                        {
+                            failureCallbackFunc();
+                        }
+                    }
+                );
+            },
+            function(error)
+            {
+                console.log("Error getting file system. "+ JSON.stringify(error));
+                if (typeof (failureCallbackFunc) === 'function')
+                {
+                    failureCallbackFunc();
+                }
+            }
+        );
     },
     // Update DOM on a Received Event
     receivedEvent: function (id) {
@@ -339,7 +379,7 @@ var dictation = {
             return;
         }
         var d1=new Date();
-        dictation.recordedFileName = word.trim().toLowerCase() + ".mp3"; //testAudio.mp3"; // "Word" + d1.getFullYear() + d1.getMonth() + d1.getDay() + d1.getHours() + d1.getMinutes() + d1.getSeconds() + d1.getMilliseconds() + ".mp3";
+        dictation.recordedFileName = APPNAME + "/" + word.trim().toLowerCase() + ".mp3"; //testAudio.mp3"; // "Word" + d1.getFullYear() + d1.getMonth() + d1.getDay() + d1.getHours() + d1.getMinutes() + d1.getSeconds() + d1.getMilliseconds() + ".mp3";
         console.log("initializing recording on " + dictation.recordedFileName);
         // start audio capture
         //navigator.device.capture.captureAudio(captureSuccess, captureError, {limit:1, duration:10});
@@ -347,32 +387,36 @@ var dictation = {
         {
             dictation.media.release();
         }
-        dictation.media = new Media(dictation.recordedFileName,
-            // success callback
-            function() {
-                console.log("record():Audio Success");
-            },
-            // error callback
-            function(err) {
-                console.log("record():Audio Error: "+ err.code + " " + JSON.stringify(err));
-            },
-            dictation.processMediaStatus
-        );
-        dictation.recordingInProgress = true;
-        // Record audio
-        dictation.media.startRecord();
-        $("#record").text("Stop recording");
-        $("#record").jqmData("icon", "stop");
-        // Stop recording after 10 seconds
-        setTimeout(function() {
-            dictation.media.stopRecord();
-            $("#record").text("Speak the word");
-            $("#record").jqmData("icon", "microphone");
-            dictation.media.release();
-            console.log("Stopped recording");
-            dictation.recordingInProgress = false;
-            dictation.recorded = true;
-            }, 10000);
+        $.mobile.loading('show');
+        dictation.ensureFolder(APPNAME, function() {
+            dictation.media = new Media(dictation.recordedFileName,
+                // success callback
+                function() {
+                    console.log("record():Audio Success");
+                },
+                // error callback
+                function(err) {
+                    console.log("record():Audio Error: "+ err.code + " " + JSON.stringify(err));
+                },
+                dictation.processMediaStatus
+            );
+            dictation.recordingInProgress = true;
+            // Record audio
+            dictation.media.startRecord();
+            $("#record").text("Stop recording");
+            $("#record").jqmData("icon", "stop");
+            // Stop recording after 10 seconds
+            setTimeout(function() {
+                dictation.media.stopRecord();
+                $("#record").text("Speak the word");
+                $("#record").jqmData("icon", "microphone");
+                dictation.media.release();
+                console.log("Stopped recording");
+                dictation.recordingInProgress = false;
+                dictation.recorded = true;
+                }, 10000);             
+                $.mobile.loading('hide');
+        }, function() {$.mobile.loading('hide');});
     },
     stopRecording: function stopRecording() {
         dictation.recordingInProgress = false;
@@ -400,7 +444,7 @@ var dictation = {
             alert("Please enter a word");
             return;
         }
-        dictation.recordedFileName = word.trim().toLowerCase() + ".mp3";
+        dictation.recordedFileName = APPNAME + "/" + word.trim().toLowerCase() + ".mp3";
         dictation.playWord(dictation.recordedFileName);
     },
     playWord: function(fileName)
@@ -442,7 +486,7 @@ var dictation = {
         {
             return;
         }
-        var fileName = word.trim().toLowerCase() + ".mp3";
+        var fileName = APPNAME + "/" + word.trim().toLowerCase() + ".mp3";
         dictation.playWord(fileName);
     }
 //    ,
