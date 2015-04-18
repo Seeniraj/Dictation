@@ -21,12 +21,60 @@ var dictation = {
     initialize: function () {
         this.bindEvents();
     },
+    // Dynamically changes the theme of all UI elements on all pages,
+    // also pages not yet rendered (enhanced) by jQuery Mobile.
+    changeTheme:function(theme)
+    {
+        // These themes will be cleared, add more
+        // swatch letters as needed.
+        var themes = " a b c d e";
+
+        // Updates the theme for all elements that match the
+        // CSS selector with the specified theme class.
+        function setTheme(cssSelector, themeClass, theme)
+        {
+            $(cssSelector)
+                .removeClass(themes.split(" ").join(" " + themeClass + "-"))
+                .addClass(themeClass + "-" + theme)
+                .attr("data-theme", theme);
+        }
+
+        // Add more selectors/theme classes as needed.
+        setTheme(".ui-mobile-viewport", "ui-overlay", theme);
+        //setTheme("[data-role='page']", "ui-body", theme);
+        setTheme("[data-role='page']", "ui-page-theme", theme);
+        setTheme("[data-role='header']", "ui-bar", theme);
+        setTheme("[data-role='listview'] > li", "ui-bar", theme);
+        setTheme(".ui-btn", "ui-btn-up", theme);
+        setTheme(".ui-btn", "ui-btn-hover", theme);
+    },
     // Bind Event Listeners
     //
     // Bind any events that are required on startup. Common events are:
     // 'load', 'deviceready', 'offline', and 'online'.
     bindEvents: function () {
         document.addEventListener('deviceready', this.onDeviceReady, false);
+        $(document).bind('taphold', function(event, ui){
+            //alert('tap hold fired');
+            var currentTheme = $(event.target).attr("data-theme");
+            //alert("Current theme: " + currentTheme);
+            if (currentTheme === "a")
+            {
+                dictation.changeTheme("b"); // $(event.target).data("theme", "b");
+                window.localStorage.setItem("theme", "b");
+            }
+            else if (currentTheme === "b")
+            {
+                dictation.changeTheme("c"); // $(event.target).data("theme", "c");
+                window.localStorage.setItem("theme", "c");
+            }
+            else if (currentTheme === "c")
+            {
+                dictation.changeTheme("a"); // $(event.target).data("theme", "a");
+                window.localStorage.setItem("theme", "a");
+            }
+            $(event.target).option("refresh");
+        });
         $(document).on('pagecontainerbeforeshow', function(event, ui){
             var pageID = $(ui.toPage[0]).attr('id');
             if (pageID === 'pageManageWords')
@@ -73,6 +121,14 @@ var dictation = {
     // function, we must explicitly call 'app.receivedEvent(...);'
     onDeviceReady: function () {
         window.alert = navigator.notification.alert;
+        var themeInStorage = window.localStorage.getItem("theme");
+        if (typeof  themeInStorage === 'undefined' || themeInStorage === null)
+        {
+            window.localStorage.setItem("theme", "c");
+            themeInStorage = "c";
+        }
+        dictation.changeTheme(themeInStorage);
+
         dictation.receivedEvent('deviceready');
     },
     // Update DOM on a Received Event
