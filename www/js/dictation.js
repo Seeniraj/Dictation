@@ -132,8 +132,28 @@ var dictation = {
         dictation.changeTheme(themeInStorage);
         dictation.ensureFolder(APPNAME);
 
-        dictation.receivedEvent('deviceready');
+        dictation.receivedEvent('deviceready');          
+        //dictation.tts = cordova.require("cordova/plugin/tts");
+        // Startup & Shutdown needed for Android only
+//        dictation.tts.startup(dictation.ttsInitSuccess, dictation.ttsInitError);
+//        dictation.ttsInit.then(function(){dictation.tts.speak("Hello World!", dictation.log, dictation.log);});
+//        dictation.ttsSpoken.then(function(){dictation.tts.shutdown(dictation.ttsStopSuccess, dictation.ttsStopError);});
+        
     },
+//    ttsInit: $.Deferred(),
+//    ttsSpoken: $.Deferred(),
+    logError:function(msg){console.log("tts error:" + JSON.stringify(msg));},
+    logStart:function(msg){console.log("tts start:" + JSON.stringify(msg));},
+    logEnd:function(msg){console.log("tts end:" + JSON.stringify(msg));},
+    logPause:function(msg){console.log("tts pause:" + JSON.stringify(msg));},
+    logResume:function(msg){console.log("tts resume:" + JSON.stringify(msg));},
+    logMark:function(msg){console.log("tts mark:" + JSON.stringify(msg));},
+    logBoundary:function(msg){console.log("tts boundary:" + JSON.stringify(msg));},
+//    ttsInitSuccess: function(successMsg){dictation.ttsInit.resolve(); console.log("tts initialized: " + successMsg);dictation.tts.speak("Hello World! How are you?", dictation.log, dictation.log);},
+//    ttsInitError: function(errorMsg){console.log("tts init failed: " + errorMsg);},
+//    ttsStopSuccess: function(successMsg){dictation.ttsInit = $.Deferred(); console.log("tts stopped: " + successMsg);},
+//    ttsStopError: function(errorMsg){console.log("tts stop failed: " + errorMsg);},
+//    tts: null,
     ensureFolder: function(folderName, successCallbackFunc, failureCallbackFunc)
     {
         //LocalFileSystem.PERSISTENT
@@ -445,9 +465,23 @@ var dictation = {
             return;
         }
         dictation.recordedFileName = APPNAME + "/" + word.trim().toLowerCase() + ".mp3";
-        dictation.playWord(dictation.recordedFileName);
+        dictation.playWord(dictation.recordedFileName, word);
     },
-    playWord: function(fileName)
+    tts: function(word)
+    {
+        var u = new SpeechSynthesisUtterance();
+        u.text = word;
+        //u.lang = 'en-US';
+        u.onerror = dictation.logError;
+        u.onstart = dictation.logStart;
+        u.onend = dictation.logEnd;
+        u.onpause = dictation.logPause;
+        u.onresume = dictation.logResume;
+        u.onmark = dictation.logMark;
+        u.onboundary = dictation.logBoundary;
+        speechSynthesis.speak(u);
+    },
+    playWord: function(fileName, word)
     {
         //dictation.recordedFileName = "Word" + d1.getFullYear() + d1.getMonth() + d1.getDay() + d1.getHours() + d1.getMinutes() + d1.getSeconds() + d1.getMilliseconds() + ".mp3";
         if(typeof(dictation.media) !== 'undefined' && dictation.media !== null)
@@ -464,6 +498,7 @@ var dictation = {
             // error callback
             function(err) {
                 console.log("play():Audio Error: "+ err.code);
+                if (err.code != 0) { dictation.tts(word); }
             },
             dictation.processMediaStatus
         );
@@ -476,8 +511,10 @@ var dictation = {
         else
         {
             console.log("No audio to playback");
+            dictation.tts(word);
         }    
     },
+    currentWord: null,
     playCurrentWord: function(event)
     {
         var target = $(event.target);
@@ -486,8 +523,9 @@ var dictation = {
         {
             return;
         }
+        dictation.currentWord = word;
         var fileName = APPNAME + "/" + word.trim().toLowerCase() + ".mp3";
-        dictation.playWord(fileName);
+        dictation.playWord(fileName, word);
     }
 //    ,
 //    gotFS: function (fileSystem) {
