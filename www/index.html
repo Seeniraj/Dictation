@@ -54,7 +54,7 @@
                         <li id="wordListHeader">Words</li>
                     </ul>
                 </div>
-                <div><a data-role="button" href="#pageAddWord">Add words</a>
+                <div><a data-role="button" id="addWordButton">Add words</a>
                     <a data-role="button" href="#pageTestWords">Dictation</a></div>
             </div>
             <div data-role="footer"></div>
@@ -70,9 +70,10 @@
                     <input id="OriginalWord" type="hidden">
                 </p>
                 <p>
-                    <div class="ui-grid-a">
-                        <div class="ui-block-a"><a href="#" id="record" data-role="button" data-icon="microphone">Speak the word</a></div>
+                    <div class="ui-grid-c">
+                        <div class="ui-block-a"><a href="#" id="record" data-role="button" data-icon="microphone">Record</a></div>
                         <div class="ui-block-b"><a href="#" id="play" data-role="button" data-icon="play-circle">Play</a></div>
+                        <div class="ui-block-c"><a href="#" id="deleteRecordedAudio" data-role="button" data-icon="trash-o">Delete Audio</a></div>
                     </div>
                 </p>
                 <div class="ui-grid-b">

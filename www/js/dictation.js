@@ -79,6 +79,7 @@ var dictation = {
         });
         $(document).on('pagecontainerbeforeshow', function(event, ui){
             var pageID = $(ui.toPage[0]).attr('id');
+            console.log("pagecontainerbeforeshow triggered on page " + pageID);
             if (pageID === 'pageManageWords')
             {
                 dictation.showWords();
@@ -96,18 +97,19 @@ var dictation = {
                 $("#OriginalWord").val(ui.options.word);
             }
         });
-        $(document).on('click', '.editWord', dictation.editWord);
+        $(document).on('vclick', '.editWord', dictation.editWord);
+        $(document).on('vclick', '#addWordButton', dictation.addNewWord);
+        $(document).on('vclick', '#saveWord', dictation.addWord);
+        $(document).on('vclick', '#cancelAddWord', dictation.gotoManageWords);
+        $(document).on('vclick', '#deleteWord', dictation.deleteWord);
+        $(document).on('vclick', '#deleteRecordedAudio', dictation.deleteRecordedAudio);
         
-        $(document).on('click', '#saveWord', dictation.addWord);
-        $(document).on('click', '#cancelAddWord', dictation.gotoManageWords);
-        $(document).on('click', '#deleteWord', dictation.deleteWord);
+        $(document).on('vclick', '#submitTestWords', dictation.validateWords);
+        $(document).on('vclick', '#cancelTestWords', dictation.gotoHome);
+        $(document).on('vclick', '.playCurrentWord', dictation.playCurrentWord);
         
-        $(document).on('click', '#submitTestWords', dictation.validateWords);
-        $(document).on('click', '#cancelTestWords', dictation.gotoHome);
-        $(document).on('click', '.playCurrentWord', dictation.playCurrentWord);
-        
-        $(document).on('click', '#record', dictation.record);
-        $(document).on('click', '#play', dictation.play);
+        $(document).on('vclick', '#record', dictation.record);
+        $(document).on('vclick', '#play', dictation.play);
     },
     gotoManageWords: function()
     {
@@ -133,15 +135,7 @@ var dictation = {
         dictation.ensureFolder(APPNAME);
 
         dictation.receivedEvent('deviceready');          
-        //dictation.tts = cordova.require("cordova/plugin/tts");
-        // Startup & Shutdown needed for Android only
-//        dictation.tts.startup(dictation.ttsInitSuccess, dictation.ttsInitError);
-//        dictation.ttsInit.then(function(){dictation.tts.speak("Hello World!", dictation.log, dictation.log);});
-//        dictation.ttsSpoken.then(function(){dictation.tts.shutdown(dictation.ttsStopSuccess, dictation.ttsStopError);});
-        
     },
-//    ttsInit: $.Deferred(),
-//    ttsSpoken: $.Deferred(),
     logError:function(msg){console.log("tts error:" + JSON.stringify(msg));},
     logStart:function(msg){console.log("tts start:" + JSON.stringify(msg));},
     logEnd:function(msg){console.log("tts end:" + JSON.stringify(msg));},
@@ -149,11 +143,6 @@ var dictation = {
     logResume:function(msg){console.log("tts resume:" + JSON.stringify(msg));},
     logMark:function(msg){console.log("tts mark:" + JSON.stringify(msg));},
     logBoundary:function(msg){console.log("tts boundary:" + JSON.stringify(msg));},
-//    ttsInitSuccess: function(successMsg){dictation.ttsInit.resolve(); console.log("tts initialized: " + successMsg);dictation.tts.speak("Hello World! How are you?", dictation.log, dictation.log);},
-//    ttsInitError: function(errorMsg){console.log("tts init failed: " + errorMsg);},
-//    ttsStopSuccess: function(successMsg){dictation.ttsInit = $.Deferred(); console.log("tts stopped: " + successMsg);},
-//    ttsStopError: function(errorMsg){console.log("tts stop failed: " + errorMsg);},
-//    tts: null,
     ensureFolder: function(folderName, successCallbackFunc, failureCallbackFunc)
     {
         //LocalFileSystem.PERSISTENT
@@ -270,6 +259,17 @@ var dictation = {
             }
         }
     },
+    deleteRecordedAudio: function()
+    {
+        var word = $("#OriginalWord").val();
+        if (typeof(word) === 'undefined' || word === null || word.trim() === "")
+        {
+            //alert("Please enter a word");
+            return;
+        }
+        var wordToDel = $("#OriginalWord").val().trim().toLowerCase();
+        dictation.deleteWordAudio(wordToDel);
+    },
     deleteWord: function()
     {
         var wordToDel = $("#NewWord").val();
@@ -286,6 +286,7 @@ var dictation = {
                 $("#OriginalWord").val("");
                 dictation.words.list.splice(i, 1);
                 window.localStorage.setItem("words", JSON.stringify(dictation.words));
+                dictation.deleteWordAudio(word);
                 dictation.gotoManageWords();
                 return;
             }
@@ -293,6 +294,15 @@ var dictation = {
         console.log("word to delete: " + wordToDel + " not found");
         window.localStorage.setItem("words", JSON.stringify(dictation.words));
         dictation.gotoManageWords();
+    },
+    addNewWord: function(event)
+    {
+        event.preventDefault();
+        var target = event.target;
+        $("#NewWord").val("");
+        $("#OriginalWord").val("");
+        dictation.currentWord = "";
+        $.mobile.pageContainer.pagecontainer('change', '#pageAddWord'); //, {'word':word});
     },
     editWord: function(event)
     {
@@ -428,7 +438,7 @@ var dictation = {
             // Stop recording after 10 seconds
             setTimeout(function() {
                 dictation.media.stopRecord();
-                $("#record").text("Speak the word");
+                $("#record").text("Record");
                 $("#record").jqmData("icon", "microphone");
                 dictation.media.release();
                 console.log("Stopped recording");
@@ -443,7 +453,7 @@ var dictation = {
         if (dictation.media)
         {
             dictation.media.stopRecord(); // the file should be moved to "/sdcard/"+mediaRecFile
-            $("#record").text("Speak the word");
+            $("#record").text("Record");
             $("#record").jqmData("icon", "microphone");
             dictation.media.release();
             console.log("Stopped recording");
@@ -467,6 +477,11 @@ var dictation = {
         dictation.recordedFileName = APPNAME + "/" + word.trim().toLowerCase() + ".mp3";
         dictation.playWord(dictation.recordedFileName, word);
     },
+    deleteWordAudio:function(word)
+    {
+        dictation.recordedFileName = APPNAME + "/" + word.trim().toLowerCase() + ".mp3";
+        dictation.deleteMedia(dictation.recordedFileName);
+    },
     tts: function(word)
     {
         var u = new SpeechSynthesisUtterance();
@@ -480,6 +495,22 @@ var dictation = {
         u.onmark = dictation.logMark;
         u.onboundary = dictation.logBoundary;
         speechSynthesis.speak(u);
+    },
+    deleteMedia: function(relativeFilePath)
+    {        
+        window.requestFileSystem(LocalFileSystem.PERSISTENT, 0, function(fileSystem){
+            fileSystem.root.getFile(relativeFilePath, {create:false}, function(fileEntry){
+                fileEntry.remove(function(file){
+                    console.log("File removed!");
+                },function(error){
+                    console.log("error deleting the file " + error.code);
+                    });
+                },function(){
+                    console.log("file does not exist");
+                });
+            },function(evt){
+                console.log(evt.target.error.code);
+        });
     },
     playWord: function(fileName, word)
     {
@@ -498,7 +529,7 @@ var dictation = {
             // error callback
             function(err) {
                 console.log("play():Audio Error: "+ err.code);
-                if (err.code != 0) { dictation.tts(word); }
+                if (err.code !== 0) { dictation.tts(word); }
             },
             dictation.processMediaStatus
         );
