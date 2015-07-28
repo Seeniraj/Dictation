@@ -316,14 +316,17 @@ var dictation = {
     renderTestWords: function()
     {
         dictation.getWords();
-        $("#testWordList").html("").append('<li id="testWordListHeader">Words</li>');
+        var toAppend = '<li id="testWordListHeader">Words</li>';
+        //$("#testWordList").html("").append('<li id="testWordListHeader">Words</li>');
         var NoOfWords = dictation.words.list.length;
         for (var i = 0; i < NoOfWords; ++i)
         {
             var word = dictation.words.list[i].word;
-           $("#testWordList").append("<li><div id='testWord" + i + "'><input type='text' id='inputTestWord" + i + "' data-word='" + word + "'><span class='ui-btn-icon-notext ui-icon-play-circle playCurrentWord' data-word='" + word + "'></span></div></li>");
+           //$("#testWordList").append("<li><div id='testWord" + i + "'><input type='text' id='inputTestWord" + i + "' data-word='" + word + "'><span class='ui-btn-icon-notext ui-icon-play-circle playCurrentWord' data-word='" + word + "'></span></div></li>");
+           toAppend = toAppend + "<li><table width='100%'><tr><td width='90%'><div class='ui-input-text ui-body-inherit ui-corner-all ui-shadow-inset'><input type='text' id='inputTestWord" + i + "' data-word='" + word + "' data-clear-btn='true' /></div></td><td width='10%'><span class='ui-btn-icon-notext ui-icon-play-circle playCurrentWord' data-word='" + word + "' ></span></td></tr></table></li>";
         }
-        $("#testWordList").listview('refresh');
+        $("#testWordList").html("").append(toAppend).listview('refresh');
+        console.log($("#testWordList").html());
     },
     validateWords: function()
     {
