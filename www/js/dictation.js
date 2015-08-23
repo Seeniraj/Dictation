@@ -75,7 +75,10 @@ var dictation = {
                 dictation.changeTheme("a"); // $(event.target).data("theme", "a");
                 window.localStorage.setItem("theme", "a");
             }
-            $(event.target).option("refresh");
+            if (typeof($(event.target).option) !== 'undefined')
+            {
+                $(event.target).option("refresh");
+            }
         });
         $(document).on('pagecontainerbeforeshow', function(event, ui){
             var pageID = $(ui.toPage[0]).attr('id');
@@ -106,10 +109,27 @@ var dictation = {
         
         $(document).on('vclick', '#submitTestWords', dictation.validateWords);
         $(document).on('vclick', '#cancelTestWords', dictation.gotoHome);
-        $(document).on('vclick', '.playCurrentWord', dictation.playCurrentWord);
+        //$(document).on('vclick', '.playCurrentWord', dictation.playCurrentWord);
+        $(document).on('touchstart', '.playCurrentWord', dictation.playCurrentWord);
         
         $(document).on('vclick', '#record', dictation.record);
         $(document).on('vclick', '#play', dictation.play);
+        $(document).on('vclick', '#yesExit', function(){navigator.app.exitApp();});
+        $(document).on('vclick', '#exitLink', dictation.confirmExit);
+    },
+    confirmExit: function(e) {
+        e.preventDefault();
+        navigator.notification.confirm(
+            'Do you really want to exit?',  // message
+            dictation.exitFromApp,              // callback to invoke with index of button pressed
+            'Exit',            // title
+            'Cancel,OK'         // buttonLabels
+        );
+    },
+    exitFromApp: function(buttonIndex) {
+        if (buttonIndex===2){
+            navigator.app.exitApp();
+        }
     },
     gotoManageWords: function()
     {
@@ -184,6 +204,8 @@ var dictation = {
     receivedEvent: function (id) {
         console.log('Received Event: ' + id);
         dictation.getWords();
+        //console.log('Playing welcome message...');
+        //dictation.playWord("", "Aloha")
     },
     media: null,
     words: {"list":[]},
@@ -323,7 +345,8 @@ var dictation = {
         {
             var word = dictation.words.list[i].word;
            //$("#testWordList").append("<li><div id='testWord" + i + "'><input type='text' id='inputTestWord" + i + "' data-word='" + word + "'><span class='ui-btn-icon-notext ui-icon-play-circle playCurrentWord' data-word='" + word + "'></span></div></li>");
-           toAppend = toAppend + "<li><table width='100%'><tr><td width='90%'><div class='ui-input-text ui-body-inherit ui-corner-all ui-shadow-inset'><input type='text' id='inputTestWord" + i + "' data-word='" + word + "' data-clear-btn='true' /></div></td><td width='10%'><span class='ui-btn-icon-notext ui-icon-play-circle playCurrentWord' data-word='" + word + "' ></span></td></tr></table></li>";
+           // <span class='ui-btn-icon-notext ui-icon-audio playCurrentWord' data-word='" + word + "' ></span>
+           toAppend = toAppend + "<li><table width='100%'><tr><td width='10%'>" + (i+1) + "</td><td width='80%'><div class='ui-input-text ui-body-inherit ui-corner-all ui-shadow-inset'><input type='text' id='inputTestWord" + i + "' data-word='" + word + "' data-clear-btn='true' class='testTextBox' autocomplete='off' autocorrect='off' autocapitalize='off' spellcheck='false' /></div></td><td width='10%'><i class='fa fa-volume-up fa-3x playCurrentWord' style='width:100%;' data-word='" + word + "'></i></td></tr></table></li>";
         }
         $("#testWordList").html("").append(toAppend).listview('refresh');
         console.log($("#testWordList").html());
@@ -343,6 +366,7 @@ var dictation = {
             {
                 alert("Word " + enteredWord + " is incorrect!");
                 allWordsAreCorrect = false;
+                break;
             }
         }
         if (allWordsAreCorrect)
@@ -436,7 +460,7 @@ var dictation = {
             dictation.recordingInProgress = true;
             // Record audio
             dictation.media.startRecord();
-            $("#record").text("Stop recording");
+            $("#record").text("Stop");
             $("#record").jqmData("icon", "stop");
             // Stop recording after 10 seconds
             setTimeout(function() {
@@ -489,6 +513,7 @@ var dictation = {
     {
         var u = new SpeechSynthesisUtterance();
         u.text = word;
+        u.rate = 0.75;
         //u.lang = 'en-US';
         u.onerror = dictation.logError;
         u.onstart = dictation.logStart;
@@ -497,6 +522,9 @@ var dictation = {
         u.onresume = dictation.logResume;
         u.onmark = dictation.logMark;
         u.onboundary = dictation.logBoundary;
+        u.onend = function(e) {
+            console.log('Finished speaking in ' + event.elapsedTime + ' seconds.');
+        };
         speechSynthesis.speak(u);
     },
     deleteMedia: function(relativeFilePath)
@@ -514,6 +542,10 @@ var dictation = {
             },function(evt){
                 console.log(evt.target.error.code);
         });
+    },
+    donePlayingAudio: function()
+    {
+        console.log('Done playing word');
     },
     playWord: function(fileName, word)
     {
@@ -561,20 +593,6 @@ var dictation = {
         var fileName = APPNAME + "/" + word.trim().toLowerCase() + ".mp3";
         dictation.playWord(fileName, word);
     }
-//    ,
-//    gotFS: function (fileSystem) {
-//        fileSystem.root.getFile(dictation.recordedFileName, {create: true, exclusive: false}, dictation.gotFileEntry, fail);
-//    },
-//    gotFileEntry: function (fileEntry) {
-//        //alert('File URI: ' + fileEntry.toURI());
-//        var options = new FileUploadOptions();
-//        var ft = new FileTransfer();
-//        var localPath = fileEntry.fullPath;
-//        var fileURI = fileEntry.toURL();
-//        options.fileKey = "audiofile";
-//        options.mimeType = "audio/wav";
-//        options.fileName = fileURI.substr(fileURI.lastIndexOf('/') + 1);
-//    }
 };
 
 dictation.initialize();
